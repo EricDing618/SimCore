@@ -7,9 +7,9 @@
 ## 目录
 - [Elevator](#Elevator)
 
-# Elevator
-## 自制电梯模拟器
-- 源码位置：src/Elevator
+## Elevator
+### 自制电梯模拟器
+- 源码位置：`src/Elevator`
 - 核心类：
   - `Building`：大楼，也是控制中心。
   - `Passenger`：乘客。
