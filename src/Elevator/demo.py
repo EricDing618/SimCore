@@ -1,8 +1,10 @@
-from core import *
+from src.Elevator.core import *
 
-if __name__ == "__main__":
+def demo():
     # 创建大楼
-    building = Building()
+    building = Building(
+        floor_range=(Floor(-1),Floor(27))
+    )
 
     # 创建电梯
     elevator1 = Elevator(eid=1, max_weight=1000, building=building)
@@ -18,4 +20,8 @@ if __name__ == "__main__":
     # 添加乘客到大楼
     building.passengers = [passenger1, passenger2]
 
-    print("Building and components initialized successfully.")
+    for event in building.execute():
+        print(event)
+
+if __name__ == "__main__":
+    demo()
