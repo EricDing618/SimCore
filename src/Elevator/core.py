@@ -5,6 +5,14 @@ from typing import Literal
 import time
 import heapq, itertools
 
+class Timeline:
+    def __init__(self, start_time:str='1970/01/01 00:00:00'):
+        self.start_time = start_time
+        self.events = []
+    def save_event(self, event:dict):
+        self.events.append(event)
+    def get_time(self, target_event:dict, addsec:int):
+        ...
 class Tool:
     '''工具类，包含一些通用方法'''
     @staticmethod
