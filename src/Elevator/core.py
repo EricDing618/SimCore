@@ -6,13 +6,17 @@ import time
 import heapq, itertools
 
 class Timeline:
+    '''时间线类，管理时间，每个实例都有一个起始时间'''
     def __init__(self, start_time:str='1970/01/01 00:00:00'):
-        self.start_time = start_time
-        self.events = []
-    def save_event(self, event:dict):
-        self.events.append(event)
-    def get_time(self, target_event:dict, addsec:int):
-        ...
+        self.current_time = start_time
+    def update_from(self, target:Building|Elevator|Passenger|Floor|Event):
+        self.current_time = target.timeline.current_time
+    def update(self, addsec:int=0, new_time:str=None):
+        if new_time:
+            self.current_time = new_time
+        else:
+            self.current_time = Tool.add_seconds_to_datetime(self.current_time, addsec)
+    
 class Tool:
     '''工具类，包含一些通用方法'''
     @staticmethod
@@ -71,6 +75,7 @@ class Event:
         self.start_time = start_time
         self.relative_time = 0
         self.building = building
+        self.timeline = Timeline(self.start_time)
 
     def event(self, 
                  event_type: Literal['start',
@@ -80,10 +85,10 @@ class Event:
                                      'passenger_alight',
                                      'elevator_idle',
                                      'end']='elevator_idle',
-                 addsec: int=0,
                  elevator: Elevator=None,
                  passenger: Passenger=None,
-                 floor: Floor=None
+                 floor: Floor=None,
+                 time_host:Building|Elevator|Passenger|Floor=None
                  ) -> dict[str, str|int|Building|Elevator|Passenger|Floor]:
         '''
         event_type类型：
@@ -95,9 +100,20 @@ class Event:
         - 'elevator_idle': 电梯空闲
         - 'end': 结束模拟
         '''
-        self.relative_time += addsec
+        match event_type:
+            case 'call_elevator'|'passenger_board'|'passenger_alight':
+                assert elevator is not None, f"{event_type}事件必须指定电梯"
+                assert passenger is not None, f"{event_type}事件必须指定乘客"
+                assert floor is not None, f"{event_type}事件必须指定楼层"
+            case 'elevator_arrive':
+                assert elevator is not None, "elevator_arrive事件必须指定电梯"
+                assert floor is not None, "elevator_arrive事件必须指定楼层"
+            case 'elevator_idle':
+                assert elevator is not None, "elevator_idle事件必须指定电梯"
+
+        self.time = time_host.timeline.current_time          
+        self.relative_time = Tool.time_difference_seconds(self.start_time,self.time)
         self.event_type = event_type
-        self.time = Tool.add_seconds_to_datetime(self.start_time, self.relative_time)
         self.elevator = elevator
         self.passenger = passenger
         self.floor = floor
@@ -132,6 +148,7 @@ class Passenger:
         self.to_floor = to_floor
         self.name = name if name else '无名氏'
         self.appear_time = appear_time
+        self.timeline = Timeline(self.appear_time)
         self.call_eid = call_eid
 
         assert Tool.time_difference_seconds(self.building.start_time, self.appear_time) >= 0, "乘客出现时间必须在模拟开始时间之后"
@@ -142,11 +159,13 @@ class Passenger:
 
 class Floor:
     '''楼层，负数表示地下，注意忽略0层'''
-    def __init__(self, fid: int, 
+    def __init__(self, 
+                 fid: int, 
                  height: float=3.0,  # 楼层高度，单位米
                  ):
         self.fid = fid
         self.height = height
+        self.timeline = Timeline()
     
     def __repr__(self):
         return f'Floor(fid={self.fid}, height={self.height})'
@@ -168,6 +187,7 @@ class Elevator:
         self.current_weight = 0
         self.passengers: list[Passenger] = []
         self.building = building
+        self.timeline = Timeline(self.building.timeline.current_time)
         self.speed = speed #(m/s)
         self.height = height
         self.current_floor = init_floor  # 初始楼层，默认为1楼
@@ -184,11 +204,12 @@ class Building:
              bid: int=0,
              name: str=''
              ):
+        self.start_time = start_time
+        self.timeline = Timeline(self.start_time)
         self.t = Tool()
         self.floor_range = {f: Floor(f) for f in self.t.myrange(floor_range[0].fid,floor_range[1].fid) if f != 0}
         self.elevators = elevators
         self.passengers:list[Passenger] = []
-        self.start_time = start_time
         self.bid = bid
         self.name = name
         self.eventman = Event(self.start_time, self)
