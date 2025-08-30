@@ -8,10 +8,12 @@ import heapq, itertools
 class Timeline:
     '''时间线类，管理时间，每个实例都有一个起始时间'''
     def __init__(self, start_time:str='1970/01/01 00:00:00'):
-        self.current_time = start_time
+        self.last_time = self.current_time = start_time
     def update_from(self, target:Building|Elevator|Passenger|Floor|Event):
+        self.last_time = self.current_time
         self.current_time = target.timeline.current_time
     def update(self, addsec:int=0, new_time:str=None):
+        self.last_time = self.current_time
         if new_time:
             self.current_time = new_time
         else:
@@ -26,11 +28,13 @@ class Tool:
             return range(b, a + 1)
         return range(a, b + 1)
     @staticmethod
-    def total_height(a: int, b: int, floor_range: dict[int, Floor], elevator: Elevator=None):
+    def total_height(a: int, b: int, floor_range: dict[int, Floor]):
         '''计算电梯在两个楼层之间运行的总高度，忽略0层'''
         if a == b:
             return 0
-        return sum(floor_range[f].height for f in Tool.myrange(a, b) if f != 0) - (elevator.height if elevator else 0)
+        if a > b:
+            a, b = b, a
+        return sum(floor_range[f].height for f in Tool.myrange(a, b-1) if f != 0)
     @staticmethod
     def time_difference_seconds(time_str1, time_str2):
         """
@@ -84,6 +88,7 @@ class Event:
                                      'passenger_board',
                                      'passenger_alight',
                                      'elevator_idle',
+                                     'elevator_outweight',
                                      'end']='elevator_idle',
                  elevator: Elevator=None,
                  passenger: Passenger=None,
@@ -98,20 +103,32 @@ class Event:
         - 'passenger_board': 乘客上电梯
         - 'passenger_alight': 乘客下电梯
         - 'elevator_idle': 电梯空闲
+        - 'elevator_outweight': 电梯超载
         - 'end': 结束模拟
         '''
         match event_type:
+            case 'elevator_outweight':
+                assert elevator is not None, "elevator_outweight事件必须指定电梯"
+                assert passenger is not None, "elevator_outweight事件必须指定乘客"
             case 'call_elevator'|'passenger_board'|'passenger_alight':
                 assert elevator is not None, f"{event_type}事件必须指定电梯"
                 assert passenger is not None, f"{event_type}事件必须指定乘客"
                 assert floor is not None, f"{event_type}事件必须指定楼层"
+                if event_type=='passenger_board':
+                    if not elevator.add_passenger(passenger):
+                        event_type = 'elevator_outweight'
+                        elevator.timeline.update(new_time=elevator.timeline.last_time)
             case 'elevator_arrive':
                 assert elevator is not None, "elevator_arrive事件必须指定电梯"
                 assert floor is not None, "elevator_arrive事件必须指定楼层"
             case 'elevator_idle':
                 assert elevator is not None, "elevator_idle事件必须指定电梯"
 
-        self.time = time_host.timeline.current_time          
+        self.time = time_host.timeline.current_time
+
+        # 为了校准end事件
+        if Tool.time_difference_seconds(self.building.timeline.current_time, self.time) > 0:
+            self.building.timeline.update_from(time_host)
         self.relative_time = Tool.time_difference_seconds(self.start_time,self.time)
         self.event_type = event_type
         self.elevator = elevator
@@ -179,7 +196,8 @@ class Elevator:
                  building: Building=None,
                  speed:int|float = 1.0,
                  height:int|float = 3,
-                 init_floor: int=1
+                 idle_time:int|float = 300 # 空闲时间，单位秒
+
                  ):
         self.eid = eid
         self.name = name if name else eid
@@ -190,8 +208,14 @@ class Elevator:
         self.timeline = Timeline(self.building.timeline.current_time)
         self.speed = speed #(m/s)
         self.height = height
-        self.current_floor = init_floor  # 初始楼层，默认为1楼
-    
+        self.current_floor = 1  # 初始楼层，默认为1楼
+        self.idle_time = idle_time
+    def add_passenger(self, passenger: Passenger):
+        if self.current_weight + passenger.weight <= self.max_weight:
+            self.passengers.append(passenger)
+            self.current_weight += passenger.weight
+            return True
+        return False
     def __repr__(self):
         return f'Elevator(eid={self.eid}, max_weight={self.max_weight}, current_weight={self.current_weight}, passengers={self.passengers}, current_floor={self.current_floor})'
 
@@ -259,11 +283,9 @@ class Building:
     def elevator_initpark(self):
         floor_keys = list(self.floor_range.keys())
         for elevator,current_floor in zip(self.elevators,self.get_parking_floors_optimized(len(self.elevators),floor_keys[0],floor_keys[-1])):
-            _eleelevator_current_floor = elevator.current_floor
             elevator.current_floor = current_floor
-            total_height = self.t.total_height(_eleelevator_current_floor, elevator.current_floor, self.floor_range, elevator)
-            #print(total_height)
-            yield self.eventman.event('elevator_arrive',addsec=total_height//elevator.speed, elevator=elevator, floor=Floor(elevator.current_floor))
+            yield self.eventman.event('elevator_arrive', elevator=elevator, floor=Floor(elevator.current_floor), time_host=elevator)
+            yield self.eventman.event('elevator_idle', elevator=elevator, time_host=elevator)
 
     def execute(self, method:Literal["FCFS", "SSTF", "LOOK"]="FCFS"):
         '''
@@ -275,58 +297,62 @@ class Building:
         '''
         # 开始模拟
         self.method = method
-        yield self.eventman.event('start')
+        yield self.eventman.event('start', time_host=self)
         # 电梯待命
         yield from self.elevator_initpark()
+        # 使用 sorted 对乘客按出现时间排序
+        sorted_passengers = sorted(
+            self.passengers,
+            key=lambda p: self.t.time_difference_seconds(self.start_time, p.appear_time)
+        )
         # 处理乘客
         match method:
             case "FCFS":
-                # 使用 sorted 对乘客按出现时间排序
-                sorted_passengers = sorted(
-                    self.passengers,
-                    key=lambda p: self.t.time_difference_seconds(self.start_time, p.appear_time)
-                )
-                
                 # 处理排序后的乘客
-                for passenger in sorted_passengers:
+                for i in range(len(sorted_passengers)):
+                    passenger = sorted_passengers[i]
                     # 找到指定的电梯
                     elevator = next((e for e in self.elevators if e.eid == passenger.call_eid), None)
+                    #print(elevator)
+
                     if elevator:
+                        # 乘客呼叫电梯
+                        yield self.eventman.event(
+                            'call_elevator',
+                            elevator=elevator,
+                            passenger=passenger,
+                            floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
+                            time_host=passenger
+                        )
                         # 检查电梯是否已经在乘客所在楼层
                         if elevator.current_floor == passenger.from_floor:  # 这里已经是整数比较
+                            elevator.timeline.update_from(passenger)
                             yield self.eventman.event(
-                                'call_elevator',
-                                elevator=elevator,
-                                passenger=passenger,
-                                floor=self.floor_range[passenger.from_floor]  # 获取Floor对象
+                                'passenger_board',
+                                elevator,
+                                passenger,
+                                passenger.from_floor,
+                                passenger
                             )
                         else:
+                            elevator.timeline.update_from(passenger)
                             # 如果电梯不在乘客所在楼层，需要先移动到该楼层
                             # 计算移动时间
                             travel_time = self.t.total_height(
                                 elevator.current_floor, 
                                 passenger.from_floor,  # 使用整数楼层编号
-                                self.floor_range, 
-                                elevator
+                                self.floor_range
                             ) / elevator.speed
                             
                             # 电梯移动到乘客楼层
-                            yield self.eventman.event(
-                                'elevator_arrive',
-                                addsec=travel_time,
-                                elevator=elevator,
-                                floor=self.floor_range[passenger.from_floor]  # 获取Floor对象
-                            )
-                            
+                            elevator.timeline.update(travel_time)
                             # 更新电梯位置
                             elevator.current_floor = passenger.from_floor
-                            
-                            # 乘客呼叫电梯
                             yield self.eventman.event(
-                                'call_elevator',
+                                'elevator_arrive',
                                 elevator=elevator,
-                                passenger=passenger,
-                                floor=self.floor_range[passenger.from_floor]  # 获取Floor对象
+                                floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
+                                time_host=elevator
                             )
         
-        yield self.eventman.event('end')
+        yield self.eventman.event('end', time_host=self)
