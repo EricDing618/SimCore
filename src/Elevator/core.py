@@ -125,8 +125,10 @@ class Event:
                             yield from self.event('elevator_idle', elevator=elevator, time_host=elevator)
                 if event_type=='passenger_board':
                     if not elevator.add_passenger(passenger):
-                        event_type = 'elevator_outweight'
-                        elevator.timeline.update(new_time=elevator.timeline.last_time)
+                        #event_type = 'elevator_outweight'
+                        #elevator.timeline.update(new_time=elevator.timeline.last_time)
+                        yield from self.event('elevator_outweight', elevator=elevator, passenger=passenger, time_host=elevator)
+                        return
                 if event_type=='passenger_alight':
                     if not elevator.remove_passenger(passenger):
                         event_type = 'invalid'

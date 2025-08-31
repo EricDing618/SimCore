@@ -31,10 +31,11 @@ def demo():
     # 创建乘客
     passenger1 = Passenger(pid=1, weight=r.randint(45,140), building=building, from_floor=1, to_floor=r.randint(fb//2, fb), name='Peter', appear_time=start_time+f' 0{r.randint(8,9)}:{r.randint(10,59)}:{r.randint(10,59)}', call_eid=r.randint(0,1))
     passenger2 = Passenger(pid=2, weight=r.randint(50,100), building=building, from_floor=r.randint(fa, -1), to_floor=r.randint(1, fb), name='Dick', appear_time=start_time+f' {r.randint(10,23)}:0{r.randint(0,9)}:{r.randint(10,59)}', call_eid=r.randint(0,1))
-    passenger3 = Passenger(pid=3, weight=r.randint(0,7000), building=building, from_floor=r.randint(fa, -1), to_floor=r.randint(1, fb), name='NotDick', appear_time=start_time+f' {r.randint(10,23)}:0{r.randint(0,9)}:{r.randint(10,59)}', call_eid=r.randint(0,1)) # 恐怖片（确信
+    #passenger3 = Passenger(pid=3, weight=r.randint(0,7000), building=building, from_floor=r.randint(fa, -1), to_floor=r.randint(1, fb), name='NotDick', appear_time=start_time+f' {r.randint(10,23)}:0{r.randint(0,9)}:{r.randint(10,59)}', call_eid=r.randint(0,1)) # 恐怖片（确信
 
     # 添加乘客到大楼
-    building.passengers = [passenger1, passenger2, passenger3]
+    #building.passengers = [passenger1, passenger2, passenger3]
+    building.passengers = [passenger1, passenger2]
 
     execute = building.execute('FCFS')
     #pprint.pprint(list(execute),indent=4,depth=4)
