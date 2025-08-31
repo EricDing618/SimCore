@@ -4,6 +4,9 @@
 
 </center>
 
+> [!TIP]
+> 一般地，运行`simcore.py`即可。 ~~Python导入机制过于垃圾了，什么报错都有。~~
+
 ## 目录
 - [Elevator](#Elevator)
 
