@@ -1,0 +1,26 @@
+PS D:\gitclone\SimCore> python src/Elevator/demo_pro.py
+[2006/07/09 08:00:00] random_test_building(bid: 0)模拟开始，楼层范围：-2 ~ 40（没有0层）
+[2006/07/09 08:00:00] 电梯 左(eid: 0) 到达 1 层（速度：2 m/s）
+[2006/07/09 08:00:00] 电梯 左(eid: 0) 空闲
+[2006/07/09 08:00:00] 电梯 右(eid: 1) 到达 20 层（速度：2 m/s）
+[2006/07/09 08:00:00] 电梯 右(eid: 1) 空闲
+[2006/07/09 08:05:00] 电梯 右(eid: 1) 空闲
+[2006/07/09 08:05:00] 电梯 左(eid: 0) 空闲
+[2006/07/09 09:20:58] 乘客 Peter(pid: 1) 在楼层 1 呼叫电梯 右(eid: 1)（计划），目标楼层 35，质量 116kg
+[2006/07/09 09:21:28] 电梯 右(eid: 1) 到达 1 层（速度：2 m/s）
+[2006/07/09 09:21:28] 乘客 Peter(pid: 1) 上电梯 右(eid: 1)
+[2006/07/09 09:22:20] 电梯 右(eid: 1) 到达 35 层（速度：2 m/s）
+[2006/07/09 09:22:20] 乘客 Peter(pid: 1) 下电梯 右(eid: 1)，到达楼层 35
+[2006/07/09 09:27:20] 电梯 右(eid: 1) 空闲
+[2006/07/09 14:03:59] 乘客 NotDick(pid: 3) 在楼层 -2 呼叫电梯 左(eid: 0)（计划），目标楼层 13，质量 5000kg
+[2006/07/09 14:03:59] 无效事件，信息：{'event_type': 'invalid', 'time': '2006/07/09 14:03:59', 'building': Building(floor_range={-2: Floor(fid=-2, height=3.0), -1: Floor(fid=-1, height=3.0), 1: Floor(fid=1, height=6), 2: Floor(fid=2, height=3.0), 3: Floor(fid=3, height=3.0), 4: Floor(fid=4, height=3.0), 5: Floor(fid=5, height=3.0), 6: Floor(fid=6, height=3.0), 7: Floor(fid=7, height=3.0), 8: Floor(fid=8, height=3.0), 9: Floor(fid=9, height=3.0), 10: Floor(fid=10, height=3.0), 11: Floor(fid=11, height=3.0), 12: Floor(fid=12, height=3.0), 13: Floor(fid=13, height=3.0), 14: Floor(fid=14, height=3.0), 15: Floor(fid=15, height=3.0), 16: Floor(fid=16, height=3.0), 17: Floor(fid=17, height=3.0), 18: Floor(fid=18, height=3.0), 19: Floor(fid=19, height=3.0), 
+20: Floor(fid=20, height=3.0), 21: Floor(fid=21, height=3.0), 22: Floor(fid=22, height=3.0), 23: Floor(fid=23, height=3.0), 24: Floor(fid=24, height=3.0), 25: Floor(fid=25, height=3.0), 26: Floor(fid=26, height=3.0), 27: Floor(fid=27, height=3.0), 28: Floor(fid=28, height=3.0), 29: Floor(fid=29, height=3.0), 30: Floor(fid=30, height=3.0), 31: Floor(fid=31, height=3.0), 32: Floor(fid=32, height=3.0), 33: Floor(fid=33, height=3.0), 34: Floor(fid=34, height=3.0), 35: Floor(fid=35, height=3.0), 36: Floor(fid=36, height=3.0), 37: Floor(fid=37, height=3.0), 38: Floor(fid=38, height=3.0), 39: Floor(fid=39, height=3.0), 40: Floor(fid=40, height=3.0)}, elevators=(Elevator(eid=0, max_weight=1243, current_weight=0, passengers=[], current_floor=13), Elevator(eid=1, max_weight=2357, current_weight=0, passengers=[], current_floor=30)), passengers=[Passenger(pid=1, weight=116, name=Peter, from_floor=1, to_floor=35), Passenger(pid=2, weight=81, name=Dick, from_floor=-2, to_floor=30), Passenger(pid=3, weight=5000, name=NotDick, from_floor=-2, to_floor=13)]), 'elevator': Elevator(eid=0, max_weight=1243, current_weight=0, passengers=[], current_floor=13), 'passenger': Passenger(pid=3, weight=5000, name=NotDick, from_floor=-2, to_floor=13), 'floor': 13, 'relative_time': 21839.0}
+[2006/07/09 14:04:02] 电梯 左(eid: 0) 到达 -2 层（速度：2 m/s）
+[2006/07/09 14:04:02] 电梯 左(eid: 0) 超载！最大载重 1243kg，乘客NotDick(pid: 3)无法上电梯
+[2006/07/09 14:04:21] 电梯 左(eid: 0) 到达 13 层（速度：2 m/s）
+[2006/07/09 21:02:54] 乘客 Dick(pid: 2) 在楼层 -2 呼叫电梯 右(eid: 1)（计划），目标楼层 30，质量 81kg
+[2006/07/09 21:03:49] 电梯 右(eid: 1) 到达 -2 层（速度：2 m/s）
+[2006/07/09 21:03:49] 乘客 Dick(pid: 2) 上电梯 右(eid: 1)
+[2006/07/09 21:04:37] 电梯 右(eid: 1) 到达 30 层（速度：2 m/s）
+[2006/07/09 21:04:37] 乘客 Dick(pid: 2) 下电梯 右(eid: 1)，到达楼层 30
+[2006/07/09 21:04:37] random_test_building(bid: 0)模拟结束，共计运行 47077.0 秒

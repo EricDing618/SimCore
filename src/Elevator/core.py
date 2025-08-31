@@ -255,12 +255,13 @@ class Building:
              elevators: tuple[Elevator]=None,
              start_time: str='1970/01/01 00:00:00',
              bid: int=0,
-             name: str=''
+             name: str='',
+             normal_height:int|float=3
              ):
         self.start_time = start_time
         self.timeline = Timeline(self.start_time)
         self.t = Tool()
-        self.floor_range = {f: Floor(f) for f in self.t.myrange(floor_range[0].fid,floor_range[1].fid) if f != 0}
+        self.floor_range = {f: Floor(f,normal_height) for f in self.t.myrange(floor_range[0].fid,floor_range[1].fid) if f != 0}
         self.elevators = elevators
         self.passengers:list[Passenger] = []
         self.bid = bid

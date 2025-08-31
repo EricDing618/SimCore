@@ -10,7 +10,8 @@ def demo():
     building = Building(
         floor_range=(Floor(fa),Floor(fb)),
         start_time=start_time+' 08:00:00',
-        name='random_test_building'
+        name='random_test_building',
+        normal_height=r.randint(3,5)
     )
 
     # 楼层高度特例
