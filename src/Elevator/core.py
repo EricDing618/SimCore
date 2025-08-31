@@ -98,15 +98,15 @@ class Event:
                  ) -> dict[str, str|int|Building|Elevator|Passenger|Floor]:
         '''
         event_type类型：
-        - 'start': 开始模拟
-        - 'call_elevator': 乘客呼叫电梯
-        - 'elevator_arrive': 电梯到达楼层
-        - 'passenger_board': 乘客上电梯
-        - 'passenger_alight': 乘客下电梯
-        - 'elevator_idle': 电梯空闲
-        - 'elevator_outweight': 电梯超载
-        - 'end': 结束模拟
-        - 'invalid': 无效事件
+        - `start`: 开始模拟
+        - `call_elevator`: 乘客呼叫电梯
+        - `elevator_arrive`: 电梯到达楼层
+        - `passenger_board`: 乘客上电梯
+        - `passenger_alight`: 乘客下电梯
+        - `elevator_idle`: 电梯空闲
+        - `elevator_outweight`: 电梯超载
+        - `end`: 结束模拟
+        - `invalid`: 无效事件
         '''
         match event_type:
             case 'elevator_outweight':
@@ -224,6 +224,7 @@ class Elevator:
         self.idle_time = idle_time # 空闲时间，单位秒
         self.last_active_time = self.timeline.current_time
         self.is_idle = True
+        self.direction = 1 # 0表示朝下，1表示朝上
     def add_passenger(self, passenger: Passenger):
         if self.current_weight + passenger.weight <= self.max_weight:
             self.passengers.append(passenger)
@@ -378,5 +379,20 @@ class Building:
                                 floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
                                 time_host=elevator
                             )
+                        travel_time = self.t.total_height(
+                            passenger.from_floor, 
+                            passenger.to_floor,
+                            self.floor_range
+                        ) / elevator.speed
+                        # 电梯移动到目标楼层
+                        elevator.timeline.update(travel_time)
+                        # 更新电梯位置
+                        elevator.current_floor = passenger.to_floor
+                        yield self.eventman.event(
+                            'elevator_arrive',
+                            elevator=elevator,
+                            floor=self.floor_range[passenger.to_floor],  # 获取Floor对象
+                            time_host=elevator
+                        )
         
         yield self.eventman.event('end', time_host=self)
