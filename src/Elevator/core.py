@@ -38,7 +38,7 @@ class Tool:
     @staticmethod
     def time_difference_seconds(time_str1, time_str2):
         """
-        计算两个时间字符串之间的秒数差（需自行外加绝对值abs()）
+        计算两个时间字符串之间的秒数差（time_str2 - time_str1，需自行外加绝对值abs()）
         
         参数:
         time_str1, time_str2: 格式为 "YYYY/MM/DD HH:MM:SS" 的时间字符串
@@ -89,7 +89,8 @@ class Event:
                                      'passenger_alight',
                                      'elevator_idle',
                                      'elevator_outweight',
-                                     'end']='elevator_idle',
+                                     'end',
+                                     'invalid']='elevator_idle',
                  elevator: Elevator=None,
                  passenger: Passenger=None,
                  floor: Floor=None,
@@ -105,6 +106,7 @@ class Event:
         - 'elevator_idle': 电梯空闲
         - 'elevator_outweight': 电梯超载
         - 'end': 结束模拟
+        - 'invalid': 无效事件
         '''
         match event_type:
             case 'elevator_outweight':
@@ -114,15 +116,25 @@ class Event:
                 assert elevator is not None, f"{event_type}事件必须指定电梯"
                 assert passenger is not None, f"{event_type}事件必须指定乘客"
                 assert floor is not None, f"{event_type}事件必须指定楼层"
+                if event_type=='call_elevator':
+                    if Tool.time_difference_seconds(elevator.last_active_time, passenger.timeline.current_time) >= elevator.idle_time:
+                        elevator.timeline.update(elevator.idle_time)
+                        if not elevator.is_idle:
+                            return self.event('elevator_idle', elevator=elevator, time_host=elevator)
                 if event_type=='passenger_board':
                     if not elevator.add_passenger(passenger):
                         event_type = 'elevator_outweight'
+                        elevator.timeline.update(new_time=elevator.timeline.last_time)
+                if event_type=='passenger_alight':
+                    if not elevator.remove_passenger(passenger):
+                        event_type = 'invalid'
                         elevator.timeline.update(new_time=elevator.timeline.last_time)
             case 'elevator_arrive':
                 assert elevator is not None, "elevator_arrive事件必须指定电梯"
                 assert floor is not None, "elevator_arrive事件必须指定楼层"
             case 'elevator_idle':
                 assert elevator is not None, "elevator_idle事件必须指定电梯"
+                elevator.is_idle = True
 
         self.time = time_host.timeline.current_time
 
@@ -206,14 +218,26 @@ class Elevator:
         self.passengers: list[Passenger] = []
         self.building = building
         self.timeline = Timeline(self.building.timeline.current_time)
-        self.speed = speed #(m/s)
+        self.speed = speed #速度，单位(m/s)
         self.height = height
         self.current_floor = 1  # 初始楼层，默认为1楼
-        self.idle_time = idle_time
+        self.idle_time = idle_time # 空闲时间，单位秒
+        self.last_active_time = self.timeline.current_time
+        self.is_idle = True
     def add_passenger(self, passenger: Passenger):
         if self.current_weight + passenger.weight <= self.max_weight:
             self.passengers.append(passenger)
             self.current_weight += passenger.weight
+            self.is_idle = False
+            return True
+        return False
+    def remove_passenger(self, passenger: Passenger):
+        if passenger in self.passengers:
+            if len(self.passengers) == 1: # 最后一个乘客
+                self.last_active_time = passenger.timeline.current_time
+                self.is_idle = True
+            self.passengers.remove(passenger)
+            self.current_weight -= passenger.weight
             return True
         return False
     def __repr__(self):

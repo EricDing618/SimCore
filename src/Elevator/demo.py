@@ -31,7 +31,7 @@ def demo():
     # 创建乘客
     # 创建乘客（使用整数楼层编号）
     passenger1 = Passenger(pid=1, weight=7000, building=building, from_floor=1, to_floor=5, name='Peter', appear_time='2023/01/01 08:00:10', call_eid=0)
-    passenger2 = Passenger(pid=2, weight=80, building=building, from_floor=2, to_floor=6, name='Dick', appear_time='2023/01/01 08:00:20', call_eid=0)
+    passenger2 = Passenger(pid=2, weight=80, building=building, from_floor=2, to_floor=6, name='Dick', appear_time='2023/01/01 08:05:20', call_eid=0)
 
     # 添加乘客到大楼
     building.passengers = [passenger1, passenger2]
@@ -66,6 +66,8 @@ def demo():
                 print(f"[{time_}] 电梯 {elevator_.name}(eid: {elevator_.eid}) 超载！最大载重 {elevator_.max_weight}kg，乘客{passenger_.name}(pid: {passenger_.pid})无法上电梯")
             case 'end':
                 print(f"[{time_}] 模拟结束，共计运行 {Tool.time_difference_seconds(building_.start_time, time_)} 秒")
+            case 'invalid':
+                print(f"[{time_}] 无效事件，信息：{event}")
             case _:
                 print(f"[{time_}] 未知事件类型: {event_type_}")
 
