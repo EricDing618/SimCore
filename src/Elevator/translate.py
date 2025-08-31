@@ -11,6 +11,8 @@ class Translate:
         elevator_:Elevator = event['elevator']
         passenger_:Passenger = event['passenger']
         floor_:Floor = event['floor']
+        '''if elevator_:
+            print(elevator_.is_idle)'''
         match event_type_:
             case 'start':
                 print(f"[{time_}] {building_.name}(bid: {building_.bid})模拟开始，楼层范围：{list(building_.floor_range.keys())[0]} ~ {list(building_.floor_range.keys())[-1]}（没有0层）")

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, Generator
 
 import time
 import heapq, itertools
@@ -95,7 +95,7 @@ class Event:
                  passenger: Passenger=None,
                  floor: Floor=None,
                  time_host:Building|Elevator|Passenger|Floor=None
-                 ) -> dict[str, str|int|Building|Elevator|Passenger|Floor]:
+                 ) -> Generator[dict[str, str|int|Building|Elevator|Passenger|Floor]]:
         '''
         event_type类型：
         - `start`: 开始模拟
@@ -117,10 +117,12 @@ class Event:
                 assert passenger is not None, f"{event_type}事件必须指定乘客"
                 assert floor is not None, f"{event_type}事件必须指定楼层"
                 if event_type=='call_elevator':
-                    if Tool.time_difference_seconds(elevator.last_active_time, passenger.timeline.current_time) >= elevator.idle_time:
+                    diff = Tool.time_difference_seconds(elevator.last_active_time, passenger.timeline.current_time)
+                    #print(diff,elevator.idle_time)
+                    if diff >= elevator.idle_time:
                         elevator.timeline.update(elevator.idle_time)
                         if not elevator.is_idle:
-                            return self.event('elevator_idle', elevator=elevator, time_host=elevator)
+                            yield from self.event('elevator_idle', elevator=elevator, time_host=elevator)
                 if event_type=='passenger_board':
                     if not elevator.add_passenger(passenger):
                         event_type = 'elevator_outweight'
@@ -132,6 +134,7 @@ class Event:
             case 'elevator_arrive':
                 assert elevator is not None, "elevator_arrive事件必须指定电梯"
                 assert floor is not None, "elevator_arrive事件必须指定楼层"
+                elevator.is_idle = False
             case 'elevator_idle':
                 assert elevator is not None, "elevator_idle事件必须指定电梯"
                 elevator.is_idle = True
@@ -147,7 +150,7 @@ class Event:
         self.passenger = passenger
         self.floor = floor
         #print(self.time)
-        return {
+        yield {
             'event_type': self.event_type,
             'time': self.time,
             'building': self.building,
@@ -236,6 +239,7 @@ class Elevator:
         if passenger in self.passengers:
             if len(self.passengers) == 1: # 最后一个乘客
                 self.last_active_time = passenger.timeline.current_time
+                #print(self.last_active_time)
                 self.is_idle = True
             self.passengers.remove(passenger)
             self.current_weight -= passenger.weight
@@ -309,8 +313,8 @@ class Building:
         floor_keys = list(self.floor_range.keys())
         for elevator,current_floor in zip(self.elevators,self.get_parking_floors_optimized(len(self.elevators),floor_keys[0],floor_keys[-1])):
             elevator.current_floor = current_floor
-            yield self.eventman.event('elevator_arrive', elevator=elevator, floor=Floor(elevator.current_floor), time_host=elevator)
-            yield self.eventman.event('elevator_idle', elevator=elevator, time_host=elevator)
+            yield from self.eventman.event('elevator_arrive', elevator=elevator, floor=Floor(elevator.current_floor), time_host=elevator)
+            yield from self.eventman.event('elevator_idle', elevator=elevator, time_host=elevator)
 
     def execute(self, method:Literal["FCFS", "SSTF", "LOOK"]="FCFS"):
         '''
@@ -322,7 +326,7 @@ class Building:
         '''
         # 开始模拟
         self.method = method
-        yield self.eventman.event('start', time_host=self)
+        yield from self.eventman.event('start', time_host=self)
         # 电梯待命
         yield from self.elevator_initpark()
         # 使用 sorted 对乘客按出现时间排序
@@ -342,7 +346,8 @@ class Building:
 
                     if elevator:
                         # 乘客呼叫电梯
-                        yield self.eventman.event(
+                        elevator.is_idle = False
+                        yield from self.eventman.event(
                             'call_elevator',
                             elevator=elevator,
                             passenger=passenger,
@@ -352,7 +357,7 @@ class Building:
                         # 检查电梯是否已经在乘客所在楼层
                         if elevator.current_floor == passenger.from_floor:  # 这里已经是整数比较
                             elevator.timeline.update_from(passenger)
-                            yield self.eventman.event(
+                            yield from self.eventman.event(
                                 'passenger_board',
                                 elevator,
                                 passenger,
@@ -373,14 +378,14 @@ class Building:
                             elevator.timeline.update(travel_time)
                             # 更新电梯位置
                             elevator.current_floor = passenger.from_floor
-                            yield self.eventman.event(
+                            yield from self.eventman.event(
                                 'elevator_arrive',
                                 elevator=elevator,
                                 floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
                                 time_host=elevator
                             )
                             passenger.timeline.update_from(elevator)
-                            yield self.eventman.event(
+                            yield from self.eventman.event(
                                 'passenger_board',
                                 elevator,
                                 passenger,
@@ -396,13 +401,13 @@ class Building:
                         elevator.timeline.update(travel_time)
                         # 更新电梯位置
                         elevator.current_floor = passenger.to_floor
-                        yield self.eventman.event(
+                        yield from self.eventman.event(
                             'elevator_arrive',
                             elevator=elevator,
                             floor=self.floor_range[passenger.to_floor],  # 获取Floor对象
                             time_host=elevator
                         )
-                        yield self.eventman.event(
+                        yield from self.eventman.event(
                             'passenger_alight',
                             elevator,
                             passenger,
@@ -410,4 +415,4 @@ class Building:
                             elevator
                         )
         
-        yield self.eventman.event('end', time_host=self)
+        yield from self.eventman.event('end', time_host=self)
