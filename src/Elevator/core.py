@@ -379,6 +379,7 @@ class Building:
                                 floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
                                 time_host=elevator
                             )
+                            passenger.timeline.update_from(elevator)
                             yield self.eventman.event(
                                 'passenger_board',
                                 elevator,
