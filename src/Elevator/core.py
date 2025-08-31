@@ -379,6 +379,13 @@ class Building:
                                 floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
                                 time_host=elevator
                             )
+                            yield self.eventman.event(
+                                'passenger_board',
+                                elevator,
+                                passenger,
+                                passenger.from_floor,
+                                passenger
+                            )
                         travel_time = self.t.total_height(
                             passenger.from_floor, 
                             passenger.to_floor,
@@ -393,6 +400,13 @@ class Building:
                             elevator=elevator,
                             floor=self.floor_range[passenger.to_floor],  # 获取Floor对象
                             time_host=elevator
+                        )
+                        yield self.eventman.event(
+                            'passenger_alight',
+                            elevator,
+                            passenger,
+                            passenger.to_floor,
+                            elevator
                         )
         
         yield self.eventman.event('end', time_host=self)
