@@ -19,7 +19,7 @@ class Translate:
             case 'elevator_idle':
                 print(f"[{time_}] 电梯 {elevator_.name}(eid: {elevator_.eid}) 空闲")
             case 'elevator_arrive':
-                print(f"[{time_}] 电梯 {elevator_.name}(eid: {elevator_.eid}) 到达 {floor_.fid} 层（速度：{elevator_.speed} m/s）")
+                print(f"[{time_}] 电梯 {elevator_.name}(eid: {elevator_.eid}) 到达 {floor_.fid} 层（平均速度：{elevator_.speed} m/s）")
             case 'call_elevator':
                 print(f"[{time_}] 乘客 {passenger_.name}(pid: {passenger_.pid}) 在楼层 {floor_.fid} 呼叫电梯 {elevator_.name}(eid: {elevator_.eid})（计划），目标楼层 {passenger_.to_floor}，质量 {passenger_.weight}kg")
             case 'passenger_board':
