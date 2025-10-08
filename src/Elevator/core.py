@@ -151,6 +151,8 @@ class Event:
                 elevator.is_idle = False
             case 'elevator_idle':
                 assert elevator is not None, "elevator_idle事件必须指定电梯"
+                if elevator.is_idle:
+                    return
                 elevator.is_idle = True
 
         self.time = time_host.timeline.current_time
