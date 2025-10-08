@@ -121,13 +121,25 @@ class Event:
                     #print(diff,elevator.idle_time)
                     if diff >= elevator.idle_time:
                         elevator.timeline.update(elevator.idle_time)
-                        if not elevator.is_idle:
-                            yield from self.event('elevator_idle', elevator=elevator, time_host=elevator)
+                        if elevator.is_idle:
+                            yield from self.event(
+                                'elevator_idle',  
+                                elevator=elevator, 
+                                time_host=elevator
+                                )
+                            elevator.is_idle = False
+                        elevator.timeline.update_from(passenger)
                 if event_type=='passenger_board':
                     if not elevator.add_passenger(passenger):
                         #event_type = 'elevator_outweight'
                         #elevator.timeline.update(new_time=elevator.timeline.last_time)
-                        yield from self.event('elevator_outweight', elevator=elevator, passenger=passenger, time_host=elevator)
+                        passenger.on_board = False
+                        yield from self.event(
+                            'elevator_outweight', 
+                            elevator=elevator, 
+                            passenger=passenger, 
+                            time_host=elevator
+                            )
                         return
                 if event_type=='passenger_alight':
                     if not elevator.remove_passenger(passenger):
@@ -184,6 +196,7 @@ class Passenger:
         self.appear_time = appear_time
         self.timeline = Timeline(self.appear_time)
         self.call_eid = call_eid
+        self.on_board = False
 
         assert Tool.time_difference_seconds(self.building.start_time, self.appear_time) >= 0, "乘客出现时间必须在模拟开始时间之后"
         assert self.call_eid in [i.eid for i in self.building.elevators], f"eid {self.call_eid}不存在"
@@ -230,11 +243,14 @@ class Elevator:
         self.last_active_time = self.timeline.current_time
         self.is_idle = True
         self.direction = 1 # 0表示朝下，1表示朝上
-    def add_passenger(self, passenger: Passenger):
+    def add_passenger(self, passenger: Passenger, debug=False):
+        #print(self.current_weight, self.max_weight, passenger.weight)
         if self.current_weight + passenger.weight <= self.max_weight:
-            self.passengers.append(passenger)
-            self.current_weight += passenger.weight
-            self.is_idle = False
+            if not debug:
+                #self.last_active_time = passenger.timeline.current_time
+                self.passengers.append(passenger)
+                self.current_weight += passenger.weight
+                self.is_idle = False
             return True
         return False
     def remove_passenger(self, passenger: Passenger):
@@ -346,10 +362,8 @@ class Building:
                     # 找到指定的电梯
                     elevator = next((e for e in self.elevators if e.eid == passenger.call_eid), None)
                     #print(elevator)
-
                     if elevator:
                         # 乘客呼叫电梯
-                        elevator.is_idle = False
                         yield from self.eventman.event(
                             'call_elevator',
                             elevator=elevator,
@@ -357,6 +371,16 @@ class Building:
                             floor=self.floor_range[passenger.from_floor],  # 获取Floor对象
                             time_host=passenger
                         )
+                        if elevator.add_passenger(passenger, debug=True):
+                            elevator.is_idle = False
+                        else:
+                            yield from self.eventman.event(
+                                'elevator_outweight', 
+                                elevator=elevator, 
+                                passenger=passenger, 
+                                time_host=elevator
+                                )
+                            continue
                         # 检查电梯是否已经在乘客所在楼层
                         if elevator.current_floor == passenger.from_floor:  # 这里已经是整数比较
                             elevator.timeline.update_from(passenger)
@@ -367,6 +391,7 @@ class Building:
                                 passenger.from_floor,
                                 passenger
                             )
+                            
                         else:
                             elevator.timeline.update_from(passenger)
                             # 如果电梯不在乘客所在楼层，需要先移动到该楼层
